@@ -70,16 +70,21 @@ func UpdateTask(c *gin.Context){
 }
 
 func PatchTask(c *gin.Context){
+    //reads id from url
 	id := c.Param("id")
+    //user id from JWT
     userId := c.GetString("userId")
 
+    //look in map return task and if exist
     task, exists := tasks[id]
     if !exists || task.UserID != userId {
         c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
         return
     }
 
+    //map to hold the fields
     var input map[string]interface{}
+    //parse into it
     if err := c.ShouldBindJSON(&input); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
@@ -97,6 +102,7 @@ func PatchTask(c *gin.Context){
     }
 
     task.UpdatedAt = time.Now()
+    //write new one in the map
     tasks[id] = task
     c.JSON(http.StatusOK, task)
 }

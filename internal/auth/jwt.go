@@ -5,6 +5,7 @@ import (
     "github.com/golang-jwt/jwt/v5"
     "net/http"
     "time"
+	"strings"
 )
 
 // Normally  not hard coded.
@@ -28,18 +29,29 @@ func JWTMiddleware() gin.HandlerFunc {
             c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing token"})
             return
         }
-		// extract token, remove first 6 char (Bearer) Provides the secret key via the callback 
-        token, err := jwt.Parse(tokenString[7:], func(token *jwt.Token) (interface{}, error) {
+
+        if !strings.HasPrefix(tokenString, "Bearer ") {
+            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token format"})
+            return
+        }
+
+        // Strip "Bearer " prefix
+        tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+        // Parse the token
+        token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
             return jwtKey, nil
         })
         if err != nil || !token.Valid {
             c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
             return
         }
-		// access custom claims
+
+        // Access custom claims
         claims := token.Claims.(jwt.MapClaims)
-		//saves user id
         c.Set("userId", claims["userId"].(string))
-		//proceed to next handler
+
+        // Proceed to next handler
         c.Next()
     }
+}
